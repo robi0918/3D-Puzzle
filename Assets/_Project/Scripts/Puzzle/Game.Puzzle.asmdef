@@ -1,0 +1,20 @@
+{
+    "name": "Game.Puzzle",
+    "rootNamespace": "Game.Puzzle",
+    "references": [
+        "Game.Core",
+        "Game.Interaction",
+        "UniTask",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

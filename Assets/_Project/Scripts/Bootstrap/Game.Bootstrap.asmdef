@@ -1,0 +1,20 @@
+{
+    "name": "Game.Bootstrap",
+    "rootNamespace": "Game.Bootstrap",
+    "references": [
+        "Game.Core",
+        "Game.Player",
+        "Game.Interaction",
+        "Game.Puzzle",
+        "Game.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

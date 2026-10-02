@@ -112,3 +112,13 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Local archive of superseded scripts/docs (not part of the Unity project)
+.legacy-archive/
+Tools/backup-*/
+Logs/cli-build*.log
+Logs/cli-build-summary.txt
+
+# AI agent working notes & tooling (audit, planning, wiring — never committed)
+.ai/
+.claude/
