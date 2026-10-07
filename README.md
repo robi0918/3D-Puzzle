@@ -1,9 +1,6 @@
 # 3D-Puzzle-Explorer
 
-Prototype game eksplorasi **third-person 3D** di Unity: pemain menjelajahi sebuah ruangan,
-berinteraksi dengan objek 3D, lalu layar berlanjut ke **puzzle 2D berbasis UI** (Memory Match &
-Sliding Puzzle). Selama puzzle berlangsung kontrol karakter **di freeze**, dan setelah selesai atau
-dibatalkan kontrol kembali aktif.
+A **third-person 3D** exploration game prototype built in Unity: players explore a room, interact with 3D objects, and transition to **UI-based 2D puzzles** (Memory Match & Sliding Puzzle). Player controls are **frozen** during puzzle gameplay and resume once the puzzle is completed or cancelled.
 
 | | |
 |---|---|
@@ -17,34 +14,33 @@ dibatalkan kontrol kembali aktif.
 
 ---
 
-## 1. Cara Menjalankan
+## 1. Getting Started
 
-### Dari Editor
-1. Buka project dengan Unity **6000.3.7f1** (import pertama akan mengunduh package).
-2. `Window > TextMeshPro > Import TMP Essential Resources` (sekali saja — semua UI memakai TMP).
-3. Buka scene `Assets/Scenes/Gameplay.unity` — seluruh hierarki UI, prefab, config, karakter, dan
-   referensi Inspector sudah tersimpan di scene.
-4. Tekan **Play**.
+### Running from Editor
+1. Open the project using Unity **6000.3.7f1** (the initial import will download all required packages).
+2. Go to `Window > TextMeshPro > Import TMP Essential Resources` (one-time setup — all UI elements use TMP).
+3. Open the scene `Assets/Scenes/Gameplay.unity` — all UI hierarchies, prefabs, configs, character setups, and Inspector references are pre-configured in this scene.
+4. Press **Play**.
    
 ---
 
-## 2. Kontrol
+## 2. Controls
 
-| Aksi | Tombol |
+| Action | Input |
 |---|---|
-| Bergerak | `W A S D` |
-| Melihat / memutar kamera | Mouse |
-| Lompat | `Space` |
-| Lari | `Left Shift` |
-| Interaksi | `E` |
-| Ganti kamera (Third-Person ↔ Top-Down) | `V` |
-| Batalkan puzzle | `ESC` atau tombol **Batal** |
+| Movement | `W A S D` |
+| Look / Camera Orbit | Mouse |
+| Jump | `Space` |
+| Sprint | `Left Shift` |
+| Interact | `E` |
+| Toggle Camera (Third-Person ↔ Top-Down) | `V` |
+| Cancel Puzzle | `ESC` or **Cancel** button |
 
 ---
 
-## 3. Arsitektur
+## 3. Architecture
 
-### 3.1 Assembly (Assembly Definition)
+### 3.1 Assembly Definitions (Asmdefs)
 
 ```
 Game.Core ─────────────► IGameStateProvider, GameStateService, IInputLockable, UiTween
@@ -56,59 +52,52 @@ Game.Core ─────────────► IGameStateProvider, GameSta
     └────────────── Game.Player ──────► IPlayerInput, PlayerInputReader/Source, PlayerController,
                                         CameraManager, PlayerAnimator, PlayerAudioManager
                                            ▲
-Game.Bootstrap ─────────────────────────────┘  (composition root — paling atas, tanpa dependensi masuk)
+Game.Bootstrap ─────────────────────────────┘  (composition root — top-level, no incoming dependencies)
 Game.Puzzle.Tests  ──► EditMode tests (Editor-only)
-StarterAssets      ──► kode Starter Assets (dipisah agar tidak bercampur Assembly-CSharp)
+StarterAssets      ──► Starter Assets codebase (isolated from Assembly-CSharp)
 ```
 
-Dependensi hanya mengarah ke dalam (Game.Core tidak mengetahui apa pun di atasnya) sehingga
-**tidak ada dependensi melingkar**.
+Dependencies strictly flow inward (`Game.Core` has no knowledge of any module above it), ensuring **zero circular dependencies**.
 
-### 3.2 Alur utama
+### 3.2 Main Flow
 
 ```
 Exploration
-  └─ Interactor (OverlapSphereNonAlloc tiap 0.1 s, layer Interactable, cone pandang)
-       ├─ OnInteractableFound → InteractionPromptView menampilkan prompt
+  └─ Interactor (OverlapSphereNonAlloc every 0.1s, Interactable layer, view cone filter)
+       ├─ OnInteractableFound → InteractionPromptView displays prompt
        └─ tombol E → IInteractable.Interact() → PuzzleInteractable
             └─ PuzzleService.RunAsync(puzzle, ct)          // UniTask<PuzzleResult>
                  ├─ GameStateService.EnterPuzzle()
-                 │     └─ GameBootstrapper → IInputLockable.SetInputLocked(true) pada
-                 │        PlayerController + Interactor; UIRoot → cursor bebas
+                 │     └─ GameBootstrapper → IInputLockable.SetInputLocked(true) on
+                 │        PlayerController + Interactor; UIRoot → release cursor lock
                  ├─ PuzzleWindow.OpenAsync("<judul>")
                  ├─ await puzzle.RunAsync(ct)   // MemoryMatch / SlidingPuzzle
-                 └─ finally (selalu, termasuk cancel/error):
-                      PuzzleWindow.CloseAsync() → EnterExploration() → input aktif + cursor terkunci
-Exploration (objek solved → prompt mati + VFX solved)
+                 └─ finally (always executes, including cancel/error):
+                      PuzzleWindow.CloseAsync() → EnterExploration() → restore input + lock cursor
+Exploration (solved object → prompt disabled + play solved VFX)
 ```
 
-### 3.3 Penerapan SOLID
+### 3.3 SOLID Principles Implementation
 
-| Prinsip | Penerapan |
+| Principle | Implementation |
 |---|---|
-| **S**ingle Responsibility | `PlayerController` hanya motor + orientasi; `Interactor` hanya deteksi & memicu; `PuzzleService` hanya lifecycle puzzle; `MemoryMatchModel`/`SlidingPuzzleModel` hanya aturan main (plain C#); `*View` hanya presentasi; `GameBootstrapper` hanya merakit. Tidak ada God class. |
-| **O**pen/Closed | Menambah puzzle baru = membuat class `IPuzzle` baru + view baru; **tidak ada** perubahan pada `PuzzleService`, `Interactor`, `GameStateService`. Menambah objek interaktif baru = menambahkan `PuzzleInteractable` + factory-nya. |
-| **L**iskov Substitution | `PuzzleService` memperlakukan semua `IPuzzle` identik, satu-satunya percabangan di seluruh alur puzzle adalah `Completed`/`Cancelled`, tidak ada `if (puzzle is X)`. Semua `IInteractable` saling menggantikan di `Interactor`. |
-| **I**nterface Segregation | Interface kecil & fokus: `IInteractable`, `IPlayerInput`, `IPlayerAnimator`, `IPlayerAudio`, `IPuzzle`, `IPuzzleUI`, `IMemoryMatchView`, `ISlidingPuzzleView`, `IGameStateProvider`, `IInputLockable`. Tidak ada interface gemuk. |
-| **D**ependency Inversion | Class high-level bergantung pada abstraksi. Semua dependensi disuplai lewat **satu composition root** (`GameBootstrapper`) memakai `Construct(...)`. Tidak ada singleton statis, tidak ada `Find*`, tidak ada service locator. `GameStateService` adalah objek plain C# yang dimiliki composition root. |
+| **S**ingle Responsibility | `PlayerController` handles only locomotion & orientation; `Interactor` handles detection & triggering; `PuzzleService` manages puzzle lifecycle; `MemoryMatchModel`/`SlidingPuzzleModel` contain pure C# domain rules; `*View` components handle presentation; `GameBootstrapper` handles assembly. No God classes. |
+| **O**pen/Closed | Adding a new puzzle requires creating a new `IPuzzle` class + view — **zero modifications** to `PuzzleService`, `Interactor`, or `GameStateService`. Adding new interactable objects requires adding a `PuzzleInteractable` + its factory. |
+| **L**iskov Substitution | `PuzzleService` treats all `IPuzzle` implementations identically. The only branching logic across the puzzle flow is `Completed`/`Cancelled` — no `if (puzzle is X)`. All `IInteractable` instances are interchangeable within `Interactor`. |
+| **I**nterface Segregation | Interfaces are granular and focused: `IInteractable`, `IPlayerInput`, `IPlayerAnimator`, `IPlayerAudio`, `IPuzzle`, `IPuzzleUI`, `IMemoryMatchView`, `ISlidingPuzzleView`, `IGameStateProvider`, `IInputLockable`. No fat interfaces. |
+| **D**ependency Inversion | High-level modules depend on abstractions. Dependencies are injected via a **single composition root** (`GameBootstrapper`) using `Construct(...)`. No static singletons, `Find*` calls, or service locators. `GameStateService` is a plain C# object managed by the composition root. |
 
-### 3.4 Keputusan desain penting
+### 3.4 Key Design Decisions
 
-- **Model–View separation**: `MemoryMatchModel` dan `SlidingPuzzleModel` adalah plain C# tanpa
-  dependensi Unity → bisa di-unit-test.
-- **Cancellation**: satu token per sesi puzzle (`CancellationTokenSource` linked) dari
-  `PuzzleService`, diteruskan ke `puzzle.RunAsync`; `destroyCancellationToken` untuk objek yang
-  hancur. Tidak ada async yang berjalan setelah objek hilang. `async void` tidak dipakai.
-- **Blocking input saat animasi**: view hanya menerima klik ketika puzzle sedang menunggunya
-  (`UniTaskCompletionSource`), sehingga klik saat animasi/jeda mismatch otomatis diabaikan.
-- **Shuffle Sliding Puzzle selalu solvable**: board dikocok dengan N **langkah legal** dari kondisi
-  solved, tanpa membalik langkah terakhir.
-- **Mode kamera**: `CameraManager` hanya memindahkan priority rig Cinemachine; pitch kamera adalah
-  state pemain sehingga dikelola `PlayerController` pada camera target.
+- **Model–View Separation**: `MemoryMatchModel` and `SlidingPuzzleModel` are plain C# classes without Unity dependencies, making them fully unit-testable.
+- **Cancellation**: A single linked `CancellationTokenSource` per puzzle session managed by `PuzzleService` is passed to `puzzle.RunAsync`, alongside `destroyCancellationToken` for object destruction. Prevents async leaks after object destruction. `async void` is strictly avoided.
+- **Input Blocking During Animations**: Views only accept click inputs while actively awaiting player action (`UniTaskCompletionSource`), automatically ignoring clicks during animations or mismatch delay states.
+- **Guaranteed Solvable Sliding Puzzles**: Board shuffling executes N **valid legal moves** from a solved state without reversing the immediately preceding move.
+- **Camera System**: `CameraManager` toggles Cinemachine rig priorities, while pitch state is owned by `PlayerController` via the camera target.
 
 ---
 
-## 4. Struktur Folder
+## 4. Project Structure
 
 ```
 Assets/
@@ -121,49 +110,53 @@ Assets/
 │   │   │   ├── Abstractions/   Services/   MemoryMatch/   SlidingPuzzle/
 │   │   ├── UI/             Game.UI
 │   │   └── Bootstrap/      Game.Bootstrap  (composition root)
-│   ├── Art/Puzzle/         sprite ikon kartu, tile, punggung kartu
+│   ├── Art/Puzzle/         Card icon sprites, tiles, card backs
 │   ├── Data/               ScriptableObject (MemoryMatchConfig, SlidingPuzzleConfig)
 │   └── Tests/EditMode/     Game.Puzzle.Tests
-├── Data/                   ScriptableObject (dibuat lewat menu Create)
+├── Data/                   ScriptableObjects (created via Create menu)
 ├── Prefabs/  Scenes/  Settings/  Materials/
 ├── ThirdParty/             StarterAssets, Cosmic Retro, Anime Girl  (lihat CREDITS.md)
-└── 3D/                     model + animasi karakter
+└── 3D/                     Character models + animations
 Tools/
-├── check-compile.sh        kompilasi semua script jadi satu assembly (error Unity = error di sini)
-└── check-asmdefs.py        kompilasi tiap asmdef terpisah → memvalidasi graph assembly
+├── check-compile.sh        Compiles all scripts into a single assembly (Unity errors = build errors here)
+└── check-asmdefs.py        Compiles each asmdef independently to validate the assembly graph
 ```
 
 ---
 
-## 5. Optimisasi
+## 5. Performance & Optimization
 
-### 5.1 Diterapkan (di code)
+### 5.1 Applied Optimizations (In Code)
 
-| Area | Tindakan |
+| Category | Optimization Strategy |
 |---|---|
-| Physics | `Physics.OverlapSphereNonAlloc` + buffer 8 collider yang di-cache, **layer mask** khusus, deteksi ber-**interval 0.1 s** |
-| GC / alokasi | Tidak ada `new`/string interpolation di jalur panas; tidak ada LINQ, `Find*`, atau `GetComponent` di `Update`; `Camera.main` di-cache sekali di `Awake` |
-| Animator | `StringToHash` sekali di `Awake`; nilai hanya ditulis saat berubah |
-| UI | Label HUD hanya di-`SetText` saat nilainya berubah; `CanvasGroup` + SetActive, bukan Instantiate/Destroy |
-| Pooling | `CardView`/`SlidingTileView` di-*reuse* antar sesi puzzle |
-| Layout | Grid kartu memakai `GridLayoutGroup` statis; tile sliding diposisikan aritmetik (tidak ada layout rebuild saat animasi) |
-| Event | Semua `+=` punya `-=` di `OnDisable`/`OnDestroy` |
-| Async | `UniTask.WaitForSeconds`/`Delay`/`Yield` dengan token; tidak ada Coroutine |
+| Physics | `Physics.OverlapSphereNonAlloc` with a cached 8-element buffer, dedicated **layer mask**, evaluated at **0.1s intervals** |
+| GC / Allocations | Zero `new` allocations/string interpolations in hot paths; no LINQ, `Find*`, or `GetComponent` in `Update`; `Camera.main` cached in `Awake` |
+| Animator | `StringToHash` cached in `Awake`; values updated only on change detection |
+| UI | HUD labels use `SetText` only when values change; `CanvasGroup` + `SetActive` toggling instead of Instantiate/Destroy overhead |
+| Pooling | `CardView`/`SlidingTileView` instances recycled across puzzle sessions |
+| Layout | Card grids utilize static `GridLayoutGroup`; sliding tiles rely on explicit arithmetic positioning (no layout rebuilds during animation) |
+| Events | All `+=` subscriptions have matching `-=` unsubscribers in `OnDisable`/`OnDestroy` |
+| Async | `UniTask.WaitForSeconds`/`Delay`/`Yield` with cancellation tokens; complete elimination of Coroutines |
 
 ---
 
 ## 6. Build & Demo
 
-| Item | Tautan |
+| Asset | Link |
 |---|---|
-| Build Windows x86_64 |
+| Windows x86_64 Build | https://drive.google.com/file/d/1dWbiEPVTmdoV4GSdH1QEVToABZ357Em0/view?usp=sharing |
 
-### Video demo
+### Demo Video
 
-<video src="Demo.mp4" controls width="100%"></video>
+https://github.com/user-attachments/assets/20d05e70-9b7d-4a69-84cc-2e06d7615dfe
+
+
+
+
 
 ---
 
 ## 7. Credits
 
-Semua aset & plugin pihak ketiga beserta lisensinya ada di **[`CREDITS.md`](CREDITS.md)**.
+All third-party assets, libraries, and their respective licenses are documented in **[`CREDITS.md`](CREDITS.md)**.
