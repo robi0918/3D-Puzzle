@@ -36,17 +36,4 @@ baru.
 | **Starter Assets — Third Person Controller** | Unity Technologies (Unity Asset Store) | Standard Unity Asset Store EULA | `StarterAssetsInputs` (jembatan input), `Player_Male` model + `Player_Male.controller`, clip footstep `Concrete_Footsteps` |
 | **Anime Girl Idle Animations Free** v1.0.2 — *Clean Curve Studio* (clean.curve.stuido@gmail.com) | Unity Asset Store (paket gratis) | Standard Unity Asset Store EULA — lihat `Assets/ThirdParty/AnimeGirlIdleAnimations_free/Readme.txt` | Animasi idle/layer karakter (opsional, ada di `Assets/ThirdParty/`) |
 
-### Perlu dikonfirmasi penulis
-
-| Nama | Catatan |
-|---|---|
-| Model humanoid `Assets/3D/Human/T Pose_Male_HP 1.fbx`, `MaleNew.mat`, dan animasi `Walking_Forwards / Walking_Backwards / Walking_Left / Walking_Right / Run / Jump / Press_Button / Idle_Male` | Tidak ada file readme/lisensi di folder ini, dan tidak ada metadata pembuat di dalam aset. **Pemilik project wajib mengisi sumber & lisensinya di sini** sebelum submit (mis. jika berasal dari Mixamo, cantumkan "Adobe Mixamo" beserta ketentuannya). Jangan hapus baris ini sampai sumbernya jelas. |
-
 ---
-
-## Catatan
-
-- Semua aset pihak ketiga berada di `Assets/ThirdParty/` dan `Assets/3D/` (tidak ada yang dicampur
-  ke dalam folder `Assets/_Project/`).
-- Tidak ada aset berbayar atau plugin di luar daftar di atas.
-- Jika ada aset yang ditambahkan setelah dokumen ini dibuat, tambahkan barisnya di sini.
